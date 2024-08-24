@@ -1,0 +1,21 @@
+# globális változók
+wire1_update_time, sensor_error = None, 0
+owm_update_time = None
+wire1_buffer_up_temp, wire1_buffer_down_temp, wire1_boiler_temp, wire1_outside_temp = None, None, None, None
+owm_last_query = None
+owm_data = None
+owm_weather = None
+owm_temperature = None
+owm_humidity = None
+owm_weather_id = None
+owm_weather_icon = None
+owm_detailedstatus = None
+owm_sunrise_utc, owm_sunset_utc = None, None
+owm_sunrise_local, owm_sunset_local = None, None
+loging = None
+owm_sunrise_hm, owm_sunset_hm = None, None
+owm_daylight_duration = None
+owm_current_month = None
+owm_bad_hour = None
+owm_cloud_now = None
+owm_rain_now = None
