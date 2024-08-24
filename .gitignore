@@ -129,6 +129,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+HomeControl_Variables.py
 
 # Spyder project settings
 .spyderproject
