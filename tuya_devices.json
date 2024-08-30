@@ -1,0 +1,15 @@
+{
+    "HeatPump": ["bf18fafa4b168ee5f3mman", "192.168.1.103", "d8:1f:12:84:2c:a3"],
+    "DC_charger": ["bffb8f76947b36b0b0qu4j", "192.168.1.109", "a0:92:08:79:88:f9"],
+    "A1_plug": ["bfe2897116035163cajyad", "192.168.1.148", "a0:92:08:b4:23:fb"],
+    "L1_line_IN": ["bf84ffe1b810a93efb20hh", "", ""],
+    "MOSOGATO": ["bfae91c9ec937b48dch2r8", "", ""],
+    "SUTO": ["bfc95503e94bb8682cfoua", "", ""],
+    "MOSO": ["bff5924f1cf0f4bd2b2ujk", "", ""],
+    "Temp_Miri": ["bfecb6d41f99a1001bug8p", "", ""],
+    "Temp_WR": ["bfcc97e6bf2127d5cdaa8x", "", ""],
+    "HeatPump_Ameter": ["bf667a98575972c5c8sbnq", "", ""],
+    "Thermostat": ["bf5b59e6aaae89d2casj2z", "", ""],
+    "SZUNYOG": ["bf98c9986d8e1d0f2d5wkj", "", ""],
+    "EJJELI_FENY": ["bf9e55b2c756738aadzfq0", "", ""]
+}
