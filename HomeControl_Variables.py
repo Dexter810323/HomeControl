@@ -19,3 +19,7 @@ owm_current_month = None
 owm_bad_hour = None
 owm_cloud_now = None
 owm_rain_now = None
+pvVolts2, pvAmps2, pvVolts1, pvAmps1, pvWatts1, pv_watts, grid_watts, grid_kwh_used, grid_voltage = None, None, None, None, None, None, None, None, None
+inverter_voltage, pi_temp, inverter_temp, batterywatts, load_watts = None, None, None, None, None
+openapi = None  
+TUYA_ACCESS_ID, TUYA_ACCESS_KEY, TUYA_API_ENDPOINT = None, None, None
