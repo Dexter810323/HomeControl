@@ -1,9 +1,10 @@
 from dotenv import load_dotenv
-import os, threading, time, json, sys, pytz
+import os, threading, time, json, sys, pytz, requests
 import HomeControl_Variables as hcv
-from w1thermsensor import W1ThermSensor, Sensor
+#from w1thermsensor import W1ThermSensor, Sensor
 from pyowm import OWM
 from datetime import timedelta, datetime
+from tuya_connector import TuyaOpenAPI, TUYA_LOGGER, TuyaOpenPulsar, TuyaCloudPulsarTopic
 
 # kell még átírni ide:
 # - az inverter kiolvasást
@@ -84,6 +85,13 @@ def write_to_cli():
 #    threading.current_thread().name = "CLI_write_thread"
     # Itt is érvényesítjük a trace-t az adott szálra
 #    set_thread_trace()
+    def write_to_cli_inverter_data():
+        print(f"PV1 | Volts: {hcv.pvVolts1} | Amps: {hcv.pvAmps1} | Watts: {hcv.pvWatts1} |")
+        print(f"PV2 | Volts: {hcv.pvVolts2} | Amps: {hcv.pvAmps2} |")
+        print(f"PV | Watts: {hcv.pv_watts} | Grid: {hcv.grid_watts} | Grid_kWh: {hcv.grid_kwh_used} | Grid_Volts: {hcv.grid_voltage} |")
+        print(f"Inverter | Volts: {hcv.inverter_voltage} | Temp: {hcv.inverter_temp} |")
+        print(f"PI | Temp: {hcv.pi_temp} | Battery: {hcv.batterywatts} | Load: {hcv.load_watts} |")
+
     def write_to_cli_wire1_sensor_data():
         wire1_sensors = os.getenv("WIRE1_SENSORS")
         if wire1_sensors:
@@ -115,6 +123,7 @@ def write_to_cli():
         print("--------------------------------------------")
         write_to_cli_wire1_sensor_data()
         write_to_cli_owm_data()
+        write_to_cli_inverter_data()
         time.sleep(1)  
 
 def align_sunrise_sunset_local():
@@ -184,15 +193,84 @@ def get_owm_weather():
             pass
         time.sleep(120)
 
+def read_inverter_from_icc_py():
+    EMON_API_KEY = os.getenv("EMON_API_KEY")
+    EMON_IP = os.getenv("EMON_IP")
+    while True:
+        response = requests.get("{}/input/list.json?apikey={}".format(EMON_IP, EMON_API_KEY))
+        if response.status_code == 200:
+            response_json = response.json()
+            for item in response_json:
+                if item['name'] == 'pvVolts2': hcv.pvVolts2 = float(item['value'])
+                elif item['name'] == 'pvAmps2': hcv.pvAmps2 = float(item['value'])
+                elif item['name'] == 'pvVolts1': hcv.pvVolts1 = float(item['value'])
+                elif item['name'] == 'pvAmps1': hcv.pvAmps1 = float(item['value'])
+                elif item['name'] == 'pvwatts1': hcv.pvWatts1 = float(item['value'])
+                elif item['name'] == 'pvwatts': hcv.pv_watts = float(item['value'])
+                elif item['name'] == 'gridwatts': hcv.grid_watts = int(item['value'])
+                elif item['name'] == 'Grid_KWh_Used': hcv.grid_kwh_used = float(item['value'])
+                elif item['name'] == 'gridvoltage': hcv.grid_voltage = float(item['value'])
+                elif item['name'] == 'inverter_voltage': hcv.inverter_voltage = float(item['value'])
+                elif item['name'] == 'PI_Temperature': hcv.pi_temp = int(item['value'])
+                elif item['name'] == 'inverter_temp': hcv.inverter_temp = int(item['value'])
+                elif item['name'] == 'batterywatts' : hcv.batterywatts = int(item['value'])
+                elif item['name'] == 'loadwatts': hcv.load_watts = int(item['value'])
+
+        time.sleep(1)
+
+def get_tuya_device_status(device_id):
+    try:
+        response = hcv.openapi.get(f"/v1.0/iot-03/devices/{device_id}/status")
+        return response
+    except Exception as e:
+        print(f"Error retrieving status for device {device_id}: {e}")
+        return None
+
+def read_tuya_devices_data():
+    hcv.TUYA_ACCESS_ID = os.getenv("TUYA_ACCESS_ID")
+    hcv.TUYA_ACCESS_KEY = os.getenv("TUYA_ACCESS_KEY")
+    hcv.TUYA_API_ENDPOINT = os.getenv("TUYA_API_ENDPOINT")
+    if not hcv.TUYA_ACCESS_ID or not hcv.TUYA_ACCESS_KEY or not hcv.TUYA_API_ENDPOINT:
+        print("Missing Tuya API credentials in environment variables.")
+        return
+    hcv.openapi = TuyaOpenAPI(hcv.TUYA_API_ENDPOINT, hcv.TUYA_ACCESS_ID, hcv.TUYA_ACCESS_KEY)
+    hcv.openapi.connect()
+    tuya_devices_file = os.getenv("TUYA_DEVICES")
+
+    if tuya_devices_file:
+        with open(tuya_devices_file, 'r') as file:
+            device_dict = json.load(file)
+    else:
+        print("No Tuya devices file found in the environment variables.")
+        return
+
+    while True:
+        for device_name, device_info in device_dict.items():
+            device_id = device_info[0]  # Az első elem a device_id
+            device_status = get_tuya_device_status(device_id)
+            if device_status:
+                setattr(hcv, f'tuya_{device_name.lower()}_status', device_status)
+            else:
+                setattr(hcv, f'tuya_{device_name.lower()}_status', None)
+            #print(f"{device_name}: {device_id} | Status: {getattr(hcv, f'tuya_{device_name.lower()}_status')}")
+        
+        time.sleep(1)
+
 if __name__ == '__main__':
-    read_wire1_thread = threading.Thread(target=read_wire1_sensors) 
-    get_owm_weather_thread = threading.Thread(target=get_owm_weather)
-    print_to_cli_thread = threading.Thread(target=write_to_cli)   
+    #read_wire1_thread = threading.Thread(target=read_wire1_sensors) 
+    #get_owm_weather_thread = threading.Thread(target=get_owm_weather)
+    #print_to_cli_thread = threading.Thread(target=write_to_cli)
+    #read_inverter_from_icc_py_thread = threading.Thread(target=read_inverter_from_icc_py) 
+    read_tuya_devices_data_thread = threading.Thread(target=read_tuya_devices_data)  
 
-    read_wire1_thread.start()
-    get_owm_weather_thread.start()
-    print_to_cli_thread.start()
+    #read_wire1_thread.start()
+    #get_owm_weather_thread.start()
+    #print_to_cli_thread.start()
+    #read_inverter_from_icc_py_thread.start()
+    read_tuya_devices_data_thread.start()
 
-    read_wire1_thread.join()
-    get_owm_weather_thread.join()
-    print_to_cli_thread.join()
+    #read_wire1_thread.join()
+    #get_owm_weather_thread.join()
+    #print_to_cli_thread.join()
+    #read_inverter_from_icc_py_thread.join()
+    read_tuya_devices_data_thread.join()
